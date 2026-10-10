@@ -1,0 +1,31 @@
+# Progress
+
+- Inspected empty workspace and verified git remote.
+- Reviewed frontend-design, lean-build, UI/UX Pro Max, backend guidance, and planning-with-files.
+- Asked user about production credentials; preparing UI independently.
+- Cloned empty remote into workspace; created implementation notes and package scripts.
+- Located TypeUI OAuth entry without exposing credentials; will query MCP directly.
+- TypeUI initialized and returned local fundamentals setup; installing project-only. Superdesign generate returned a single-screen brief saved in design-system.
+- Installed Next/React/Tailwind/Supabase/Mux dependencies. Updated renamed Mux SDK to @mux/ts.
+- Created shared design contract, data types, input validation, signed guest/admin sessions, SQLite store, and Supabase adapter.
+- No user service answer yet; proceeding with a genuine local backend plus production integration.
+- Implemented API validation, private media delivery/ranges, image metadata stripping, video processing integration, protected admin actions, limits, and explicit anonymous response projection.
+- Read TypeUI fundamentals module guidance; created shared Button/Dialog/StatusBadge and Indonesian page foundation.
+- Downloaded and inspected volunteer stock photo for explicitly marked example content.
+- Built feed, four-type composer, status view, admin review UI, reactions/reporting, and shared responsive CSS/motion.
+- Added atomic Supabase schema/RPCs, local secret setup/demo script, and deployment documentation.
+- First TypeScript check passed. Removing vulnerable lint chain exposed an ESLint major peer mismatch; resolving versions without forcing incompatible dependencies.
+- Local setup created random secrets without printing them and seeded three visibly marked examples.
+- Added domain security tests and desktop/mobile browser tests covering all post formats, moderation, upload permissions, stale review protection, and keyboard/reduced-motion behavior.
+- Security test caught an unbound SQLite media query in moderation; fixed both moderation and edit asset queries before browser testing.
+- All 8 domain tests, lint, TypeScript, and initial production build passed.
+- Removed repeated calls to action, the sidebar slogan, duplicate media labels, and footer branding to match the requested restraint.
+- Stabilized accessible composer field names and fixed cancellation navigation.
+- Calculated palette contrast; darkened muted ink within its neutral family to meet AA on gold-light backgrounds.
+- Browser startup caught occupied port 3100; moved test server to 3137.
+- All 12 desktop/mobile browser tests passed against the production server, including admin UI approval, four content formats, owner-only pending media, hiding access, CSRF, and stale revision checks.
+- Performing final responsive screenshots at 1440, 768, 390, and 360px and exporting a Superdesign visual reference.
+- Four widths rendered without overflow or JavaScript errors. Corrected screenshot timing to wait for dialog animation completion.
+- Tightened public projection so admin review notes are only sent to the owner or admin; added a regression assertion.
+
+- Added frontend-only preview adapter and isolated static export. Desktop/mobile preview checks passed for submission, moderation, filtering, reactions, no API requests, and no horizontal overflow. Secret scan passed; preparing GitHub push and Vercel deployment.

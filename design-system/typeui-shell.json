@@ -1,0 +1,13 @@
+{
+  "tool": "typeui_get_section_prompt",
+  "guidance": "Run this command from the project root to install TypeUI UI/UX fundamentals:\nnpx skills add https://github.com/bergside/typeui --skill typeui-fundamentals\n\nRun this command from the user's project root. The skills CLI installs to project scope by default; do not pass --global or -g. Read the installed fundamentals guardrail files before generating or editing UI. The hosted MCP server cannot install local skills on the user's machine.",
+  "fundamentals": "./.agents/skills/typeui-fundamentals",
+  "guardrailFiles": [
+    "SKILL.md",
+    "accessibility.md",
+    "spacing-principles.md",
+    "typography-principles.md",
+    "ui-principles.md",
+    "ux-principles.md"
+  ]
+}
