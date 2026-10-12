@@ -164,9 +164,9 @@ test("gallery opens every format and articles navigate to a Markdown page", asyn
 
 test("article page handles missing and inaccessible articles", async ({ page }) => {
   await page.goto("/articles");
-  await expect(page.getByRole("alert")).toHaveText("Artikel tidak ditemukan.");
+  await expect(page.getByRole("main").getByRole("alert")).toHaveText("Artikel tidak ditemukan.");
   await page.route("**/api/posts/unavailable", route => route.fulfill({ status: 404, json: { error: "Kiriman tidak ditemukan." } }));
   await page.goto("/articles?id=unavailable");
   await expect(page.getByRole("heading", { name: "Artikel belum tersedia." })).toBeVisible();
-  await expect(page.getByRole("alert")).toHaveText("Kiriman tidak ditemukan.");
+  await expect(page.getByRole("main").getByRole("alert")).toHaveText("Kiriman tidak ditemukan.");
 });
