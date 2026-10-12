@@ -17,10 +17,25 @@ export function createPreviewApi() {
     example("demo-pending", { status: "pending", publishedAt: null, title: "Menemani teman belajar", body: "Sore ini kami belajar bersama dan saling membantu memahami materi yang sulit." }),
     example("demo-rejected", { status: "rejected", publishedAt: null, title: "Buku untuk adik-adik", body: "Kami mengumpulkan buku bacaan untuk dibagikan kepada adik-adik di sekitar.", reason: "Tambahkan cerita tentang kegiatan pembagian bukunya." }),
   ];
+  const photoExamples = [
+    { id: "cleanup", title: "Bersih lingkungan, mulai dari sekitar.", subject: "Teman-teman relawan", body: "Satu langkah kecil untuk lingkungan yang lebih nyaman. Terima kasih sudah ikut menjaga ruang bersama.", image: "community-cleanup", count: 16 },
+    { id: "books", title: "Buku baru untuk cerita berikutnya.", subject: "Teman-teman yang berbagi buku", body: "Buku yang sudah selesai kita baca bisa menjadi awal cerita bagi orang lain. Yuk, terus berbagi bacaan.", image: "book-sharing", count: 21 },
+    { id: "study", title: "Belajar jadi lebih ringan bersama.", subject: "Teman belajar", body: "Duduk bersama, bertanya, dan saling menjelaskan. Kadang bantuan sederhana membuat hari seseorang lebih mudah.", image: "study-together", count: 12 },
+    { id: "meals", title: "Berbagi makan, berbagi perhatian.", subject: "Teman-teman yang menyiapkan makanan", body: "Menyiapkan satu paket makanan dengan penuh perhatian. Kebaikan kecil bisa menghangatkan hari.", image: "meal-sharing", count: 19 },
+  ];
+  const photoPosts = photoExamples.map((item, index) => {
+    const timestamp = new Date(now - (index + 1) * 15 * 60000).toISOString();
+    return example(`demo-photo-${item.id}`, {
+      kind: "photo", title: item.title, subject: item.subject, body: `Foto ilustrasi AI · konten contoh. ${item.body}`, appreciations: item.count,
+      createdAt: timestamp, publishedAt: timestamp,
+      assets: [{ id: `demo-photo-${item.id}-asset`, provider: "local", mime: "image/webp", status: "ready", playbackId: null, url: `/assets/demo/${item.image}.webp` }],
+    });
+  });
+  posts.unshift(...photoPosts);
   function pollExample(id: string, title: string, labels: string[], counts: number[], participants: number, multiple = false, closed = false): PollPost {
     return { ...example(id, { title }), kind: "poll", poll: { options: labels.map((label, index) => ({ id: crypto.randomUUID(), label, votes: counts[index] })), multiple, closed, participants, ballot: [] } };
   }
-  posts.splice(1, 0,
+  posts.splice(2, 0,
     pollExample("demo-poll-single", "Kegiatan sosial berikutnya?", ["Donor darah", "Bersih lingkungan", "Penggalangan buku"], [4, 3, 1], 8),
     pollExample("demo-poll-multiple", "Apa yang bisa kamu bantu?", ["Menyiapkan buku", "Mengajar", "Mengantar donasi"], [5, 4, 2], 6, true),
     pollExample("demo-poll-closed", "Kapan kita berbagi buku?", ["Sabtu pagi", "Minggu pagi"], [6, 4], 10, false, true),
