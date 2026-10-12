@@ -57,14 +57,8 @@ Vercel settings for this preview: Framework **Other**, build command `npm run bu
 
 ## GitHub Actions and Vercel deployment
 
-`.github/workflows/ci-deploy.yml` runs lint, type checking, unit tests, the full Next.js build, and desktop/mobile browser tests on pull requests and pushes to `main`. Only successful checks on `main` can deploy. The deployment builds the frontend demo with `vercel build --prod`, then uploads that artifact with `vercel deploy --prebuilt --prod`.
+`.github/workflows/ci-deploy.yml` runs lint, type checking, unit tests, the full Next.js build, and desktop/mobile browser tests on pull requests and pushes to `main`. GitHub Actions supplies checks; Vercel's native GitHub integration builds and deploys the connected repository. No Vercel token is needed in GitHub Actions.
 
-The target is the existing **soedirman-baik-ui** project at https://soedirman-baik-ui.vercel.app. This is the browser-only demo; data resets on reload. It is separate from the Supabase/Mux production backend described above. `vercel.json` preserves the demo build settings and disables native Git deployments so Actions controls releases without duplicate builds.
+The target is the existing **soedirman-baik-ui** project at https://soedirman-baik-ui.vercel.app. This is the browser-only demo; data resets on reload. It is separate from the Supabase/Mux production backend described above. `vercel.json` preserves the demo build settings and enables native Git deployments. Pushes to the Vercel production branch (`main`) deploy to production; other branches and pull requests receive Vercel preview deployments when configured in the project.
 
-One-time setup:
-
-1. In [repository environment settings](https://github.com/ZidanHadipratama/soedirmanBaik/settings/environments), create or open `production` and restrict deployment branches to `main`.
-2. Create a [Vercel token](https://vercel.com/account/settings/tokens) with access to `zidanhadipratamas-projects` and add it directly as the environment secret **VERCEL_TOKEN**. Do not commit or paste this token into chat. Project/team IDs and the exact CLI version are already in the workflow.
-3. Rerun the failed deployment job, or manually run **Check and deploy** from the [Actions page](https://github.com/ZidanHadipratama/soedirmanBaik/actions). Future pushes to `main` deploy automatically after checks pass.
-
-Pull requests receive checks without deployment credentials. The workflow does not upload environment files or authenticated browser traces.
+If automatic builds stop, check **Vercel → soedirman-baik-ui → Settings → Git** and confirm the connected repository is `ZidanHadipratama/soedirmanBaik` and the production branch is `main`. Check workflow results on the [Actions page](https://github.com/ZidanHadipratama/soedirmanBaik/actions).

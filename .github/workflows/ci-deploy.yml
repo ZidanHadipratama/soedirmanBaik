@@ -1,4 +1,4 @@
-name: Check and deploy
+name: Check application
 
 on:
   push:
@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-deploy-${{ github.ref }}
-  cancel-in-progress: false
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   checks:
@@ -38,47 +38,3 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Check desktop and mobile flows
         run: npm run test:e2e
-
-  deploy:
-    name: Deploy frontend demo to Vercel
-    needs: checks
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment:
-      name: production
-      url: https://soedirman-baik-ui.vercel.app
-    env:
-      VERCEL_ORG_ID: team_88ogzY1gkQy5u0h6P1STUuQC
-      VERCEL_PROJECT_ID: prj_Zbie6uXl8bdRRd4TDnDc5Y7zQa2V
-      VERCEL_CLI_VERSION: '63.1.2'
-      NEXT_TELEMETRY_DISABLED: '1'
-    steps:
-      - name: Check deployment credentials
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo '::error::Add VERCEL_TOKEN to the GitHub production environment secrets, then rerun this workflow.'
-            exit 1
-          fi
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci
-      - name: Install pinned Vercel CLI
-        run: npm install --global "vercel@$VERCEL_CLI_VERSION"
-      - name: Pull production project settings
-        run: vercel pull --yes --environment=production
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - name: Build deployment artifact
-        run: vercel build --prod
-      - name: Deploy the tested commit
-        run: vercel deploy --prebuilt --prod --yes
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
