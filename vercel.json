@@ -6,5 +6,6 @@
   "outputDirectory": ".ui-preview/out",
   "git": {
     "deploymentEnabled": true
-  }
+  },
+  "cleanUrls": true
 }
