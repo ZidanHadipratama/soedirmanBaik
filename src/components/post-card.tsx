@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Flag, Heart, MoreHorizontal, Pencil, Play, Shield, Video } from "lucide-react";
 import type { PublicAsset } from "@/lib/types";
 import { canEditPost, type FeedPost as Post } from "@/lib/preview-types";
+import { PostSocialActions } from "./post-social-actions";
 import { PollCard } from "./poll-card";
 import { api, cn, relativeDate } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -22,7 +23,7 @@ function VideoMedia({ asset }: { asset: PublicAsset }) {
   if (!playback) return <div className="video-placeholder"><button className="video-play" onClick={load} disabled={loading} aria-label="Putar video"><Play fill="currentColor" size={28} /></button><span>{loading ? "Memuat video…" : "Putar video"}</span>{error && <p role="alert">{error}</p>}</div>;
   return <MuxPlayer playbackId={playback.playbackId} tokens={playback.tokens} streamType="on-demand" accentColor="#507899" className="post-video" />;
 }
-export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage, articleFrom }: { post: Post; articleFrom?: "gallery"; scope?: "feed" | "mine" | "admin"; onEdit?: (post: Post) => void; onReview?: (post: Post, action: "approve" | "reject" | "hide") => void; onMessage: (message: string) => void }) {
+export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage, articleFrom, back = "/", discussionOpen = false }: { post: Post; back?: string; discussionOpen?: boolean; articleFrom?: "gallery"; scope?: "feed" | "mine" | "admin"; onEdit?: (post: Post) => void; onReview?: (post: Post, action: "approve" | "reject" | "hide") => void; onMessage: (message: string) => void }) {
   const [index, setIndex] = useState(0); const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("Tidak sesuai"); const [reportError, setReportError] = useState("");
@@ -46,17 +47,20 @@ export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage, ar
       {scope === "feed" && <button className="icon-button more-button" aria-label="Laporkan kiriman" onClick={() => setReportOpen(true)}><MoreHorizontal size={22} /></button>}
       {scope !== "feed" && <StatusBadge status={post.status} />}
     </header>
+    {process.env.NEXT_PUBLIC_UI_PREVIEW === "true" && post.social && <Link className="post-room" href={`/ruang?slug=${encodeURIComponent(post.social.room.slug)}`}>{post.social.room.name}</Link>}
     {post.kind === "photo" && asset && <div className="post-image"><Image src={asset.url} alt={post.body.slice(0, 160)} width={1080} height={1350} sizes="(max-width: 767px) 100vw, 600px" unoptimized />
       {post.assets.length > 1 && <><span className="photo-count" aria-live="polite">{index + 1}/{post.assets.length}</span><div className="carousel-controls"><button className="carousel-button" disabled={index === 0} onClick={() => setIndex(index - 1)} aria-label="Foto sebelumnya"><ChevronLeft size={20} /></button><button className="carousel-button" disabled={index === post.assets.length - 1} onClick={() => setIndex(index + 1)} aria-label="Foto berikutnya"><ChevronRight size={20} /></button></div></>}
     </div>}
     {post.kind === "video" && asset && <VideoMedia asset={asset} />}
-    {post.kind === "article" && <Link className="article-preview" href={`/articles?id=${encodeURIComponent(post.id)}&from=${articleFrom ?? scope}`}><span className="content-type"><BookOpen size={16} />Artikel</span><h2>{post.title}</h2><p>{post.body.slice(0, 150)}{post.body.length > 150 ? "…" : ""}</p><span className="read-link">Baca artikel <ArrowUpRight size={18} /></span></Link>}
+    {post.kind === "article" && <Link className="article-preview" href={`/articles?id=${encodeURIComponent(post.id)}&from=${articleFrom ?? scope}${back !== "/" ? `&back=${encodeURIComponent(back)}` : ""}`}><span className="content-type"><BookOpen size={16} />Artikel</span><h2>{post.title}</h2><p>{post.body.slice(0, 150)}{post.body.length > 150 ? "…" : ""}</p><span className="read-link">Baca artikel <ArrowUpRight size={18} /></span></Link>}
     {post.kind === "link" && <a className="link-preview" href={post.url} target="_blank" rel="noopener noreferrer"><span className="link-mark"><ArrowUpRight size={28} /></span><div><span className="content-type">{new URL(post.url).hostname.replace(/^www\./, "")}</span><h2>{post.title || "Kontribusi untuk sekitar"}</h2><span className="read-link">Buka website <ArrowUpRight size={16} /></span></div></a>}
     {post.kind === "poll" && <PollCard post={post} scope={scope} onMessage={onMessage} />}
     <div className="post-content">
       {post.status === "approved" && <div className="post-actions"><button className={cn("appreciate-button", likes.active && "is-appreciated")} onClick={appreciate} disabled={likeBusy} aria-pressed={likes.active} aria-label={likes.active ? "Batalkan apresiasi" : "Apresiasi kiriman"}><Heart size={24} fill={likes.active ? "currentColor" : "none"} /><span>{likes.count > 0 ? `${likes.count} apresiasi` : "Apresiasi"}</span></button>{Boolean(post.reports) && <span className="report-count"><Flag size={14} />{post.reports} laporan</span>}</div>}
       {post.subject && <p className="post-subject">Untuk <strong>{post.subject}</strong></p>}
-      {post.kind !== "article" && post.kind !== "poll" && <><p className={cn("post-caption", !expanded && "clamped")}>{post.body}</p>{post.body.length > 170 && <button className="text-button" onClick={() => setExpanded(!expanded)}>{expanded ? "Ringkas" : "Selengkapnya"}</button>}</>}
+      {post.kind !== "article" && post.kind !== "poll" && <><p className={cn("post-caption", !expanded && post.kind !== "short" && "clamped")}>{post.body}</p>{post.body.length > 170 && <button className="text-button" onClick={() => setExpanded(!expanded)}>{expanded ? "Ringkas" : "Selengkapnya"}</button>}</>}
+      <PostSocialActions post={post} back={back} discussionOpen={discussionOpen} onMessage={onMessage} />
+      {!discussionOpen && scope !== "feed" && post.social?.parts.filter(part => part.initial).map((part, i) => <div className="thread-part-preview" key={part.id}><span className="content-type">Bagian {i + 2}</span><p>{part.body}</p></div>)}
       {scope !== "feed" && post.reason && <div className="review-reason"><span>Catatan admin</span><p>{post.reason}</p></div>}
       {scope === "mine" && canEditPost(post) && <Button variant="secondary" className="small-button" onClick={() => onEdit?.(post)}><Pencil size={16} />{post.status === "rejected" ? "Perbaiki kiriman" : "Edit kiriman"}</Button>}
       {scope === "admin" && <div className="moderation-actions">{post.status === "pending" ? <><Button onClick={() => onReview?.(post, "approve")} disabled={post.assets.some(a => a.status !== "ready")}>Terbitkan</Button><Button variant="secondary" onClick={() => onReview?.(post, "reject")}>Kembalikan</Button></> : post.status === "approved" ? <Button variant="danger" onClick={() => onReview?.(post, "hide")}>Sembunyikan</Button> : null}</div>}

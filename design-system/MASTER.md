@@ -27,3 +27,10 @@ Short Indonesian labels. Anonymous guest submissions, self or other student reco
 TypeUI app-shell guidance: typeui-shell.json.
 Superdesign generation instructions: superdesign-brief.md.
 UI/UX Pro Max: minimal direction, general accessibility guidance; its suggested marketing page structure does not fit this app.
+
+## Preview discussion surfaces
+- Demo bottom navigation: Beranda, Ruang, Jelajahi, Kirim, Kiriman saya (five targets); production retains its existing navigation.
+- Room directory uses two columns on desktop and one on mobile, with existing borders, spacing, and color tokens.
+- Text posts use content-sized cards. Author continuations form a vertical sequence; reader replies use at most two visual levels.
+- Per-thread anonymous labels, owner-only pending sections, explicit moderation states, and keyboard-accessible actions.
+- Deep links: /ruang?slug=... and /diskusi?id=...; safe internal return links preserve room/personal contexts.

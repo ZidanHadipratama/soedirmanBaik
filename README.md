@@ -72,3 +72,15 @@ Tap an answer to vote, replace your single answer, or toggle multiple answers. R
 Run `npm run build:preview` followed by `npm run start:preview`, then open http://localhost:3138. Run `npm run test:preview` for the desktop/mobile preview checks.
 
 Polls, votes, and example counts are demo data: changes reset on page reload and are not shared between visitors. Production mode retains its existing four post formats; persistent shared voting is a future backend feature.
+
+## Ruang, threads, dan percakapan anonim — demo
+
+Preview menyediakan **Cerita singkat** (500 karakter), thread hingga lima bagian, dan Ruang **Umum**, **Relawan**, **Belajar Bareng**, **Lingkungan**, serta **Ide Kampus**. Buka `/ruang` untuk mengikuti topik, atau `/ruang?slug=belajar-bareng` untuk melihat satu Ruang. Beranda memiliki pilihan Semua Ruang/Diikuti. Semua format kiriman dapat memilih Ruang.
+
+Gunakan **Tambah lanjutan** di composer untuk mengirim beberapa bagian sebagai satu paket review. Setelah kiriman terbit, buka **Balas** untuk masuk ke `/diskusi?id=<post-id>` dan menambahkan lanjutan terpisah. Kiriman awal dan lanjutan direview admin; balasan pembaca langsung tampil. Pengirim dapat memperbaiki lanjutan yang dikembalikan. Edit thread terbit mengembalikannya ke review dan menutup akses publik sementara.
+
+Percakapan menggunakan label **Penulis** dan **Anonim A/B/C** yang konsisten hanya dalam satu diskusi. Balasan memiliki maksimal dua tingkat tampilan, bisa dihapus pengirim atau dilaporkan. Penghapusan mempertahankan placeholder dan balasan turunannya. Admin dapat menyembunyikan balasan serta mengunci/membuka diskusi; kunci diskusi terpisah dari penutupan polling.
+
+**Kiriman saya** berisi tab Kiriman, Balasan, dan Tersimpan. Admin memiliki tab Kiriman, Lanjutan, Balasan, dan Ruang; Ruang hanya dibuat atau diubah oleh admin. Permalink Ruang tetap sama setelah namanya diubah.
+
+Semua operasi ini berjalan di adapter browser-only; tidak ada endpoint backend baru, pendaftaran, profil publik, atau penyimpanan bersama. Data, mengikuti Ruang, dan simpan kiriman reset saat reload. Backend produksi mempertahankan kontrak dan skema empat format sebelumnya.

@@ -1,3 +1,5 @@
+import { ZodError } from "zod";
+import { createSocialPreview } from "./social-preview";
 import type { Post, PublicAsset } from "./types";
 import { moderationSchema } from "./validation";
 import { pollSubmissionSchema, pollVoteSchema, previewSubmissionSchema } from "./poll-validation";
@@ -40,8 +42,12 @@ export function createPreviewApi() {
     pollExample("demo-poll-multiple", "Apa yang bisa kamu bantu?", ["Menyiapkan buku", "Mengajar", "Mengantar donasi"], [5, 4, 2], 6, true),
     pollExample("demo-poll-closed", "Kapan kita berbagi buku?", ["Sabtu pagi", "Minggu pagi"], [6, 4], 10, false, true),
   );
+  posts.unshift(
+    { ...example("demo-thread", { body: "Punya buku yang sudah selesai dibaca? Yuk, kumpulkan dan bagikan untuk teman-teman yang membutuhkan.", appreciations: 14, createdAt: new Date(now - 600000).toISOString(), publishedAt: new Date(now - 600000).toISOString() }), kind: "short" },
+    { ...example("demo-short", { body: "Bagaimana kalau kita membawa botol minum sendiri saat kegiatan berikutnya? Langkah kecil, lebih sedikit sampah.", appreciations: 9 }), kind: "short" },
+  );
   function changed(post: FeedPost) {
-    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PREVIEW_POST_CHANGED, { detail: structuredClone(post) }));
+    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PREVIEW_POST_CHANGED, { detail: structuredClone(social.project(post)) }));
   }
   function inputPoll(input: Extract<PreviewSubmission, { kind: "poll" }>) {
     return { options: input.poll.options.map(option => ({ ...option, votes: 0 })), multiple: input.poll.multiple, closed: false, participants: 0, ballot: [] };
@@ -49,74 +55,84 @@ export function createPreviewApi() {
   const mine = new Set(["demo-pending", "demo-rejected"]);
   const assets = new Map<string, PublicAsset>();
   let admin = false;
+  const social = createSocialPreview(posts, mine, () => admin, changed);
 
   return async function previewApi<T>(path: string, options?: RequestInit): Promise<T> {
-    options?.signal?.throwIfAborted();
-    const url = new URL(path, "https://ui-preview.invalid");
-    const method = options?.method ?? "GET";
-    const body = typeof options?.body === "string" ? JSON.parse(options.body) : {};
-    let result: unknown;
-    if (url.pathname === "/api/session") result = { admin, backend: "preview" };
-    else if (url.pathname === "/api/admin/login") { admin = true; result = { ok: true }; }
-    else if (url.pathname === "/api/admin/logout") { admin = false; result = { ok: true }; }
-    else if (url.pathname === "/api/uploads" && options?.body instanceof FormData) {
-      const file = options.body.get("file");
-      if (!(file instanceof File)) throw new Error("Pilih berkas terlebih dahulu.");
-      const asset: PublicAsset = { id: crypto.randomUUID(), provider: "local", mime: file.type, status: "ready", playbackId: null, url: URL.createObjectURL(file) };
-      assets.set(asset.id, asset); result = asset;
-    } else if (url.pathname.startsWith("/api/uploads/") && method === "DELETE") {
-      const id = url.pathname.split("/").at(-1)!; const asset = assets.get(id);
-      if (asset) URL.revokeObjectURL(asset.url);
-      assets.delete(id); result = { ok: true };
-    } else if (url.pathname === "/api/posts" && method === "GET") {
-      const scope = url.searchParams.get("scope"); const kind = url.searchParams.get("kind"); const query = (url.searchParams.get("q") ?? "").toLocaleLowerCase("id");
-      if (scope === "admin" && !admin) throw new Error("Masuk sebagai admin.");
-      const filtered = posts.filter(p => (scope === "mine" ? mine.has(p.id) : scope === "admin" ? p.status === url.searchParams.get("status") : p.status === "approved") && (!kind || p.kind === kind) && `${p.title} ${p.body} ${p.subject}`.toLocaleLowerCase("id").includes(query));
+    try {
+      options?.signal?.throwIfAborted();
+      const url = new URL(path, "https://ui-preview.invalid");
+      const method = options?.method ?? "GET";
+      const body = typeof options?.body === "string" ? JSON.parse(options.body) : {};
+      const socialResult = social.handle(url, method, body);
+      if (socialResult !== undefined) return structuredClone(socialResult) as T;
+      let result: unknown;
+      if (url.pathname === "/api/session") result = { admin, backend: "preview" };
+      else if (url.pathname === "/api/admin/login") { admin = true; if (typeof window !== "undefined") window.dispatchEvent(new Event("soedirman:preview-social-changed")); result = { ok: true }; }
+      else if (url.pathname === "/api/admin/logout") { admin = false; if (typeof window !== "undefined") window.dispatchEvent(new Event("soedirman:preview-social-changed")); result = { ok: true }; }
+      else if (url.pathname === "/api/uploads" && options?.body instanceof FormData) {
+        const file = options.body.get("file");
+        if (!(file instanceof File)) throw new Error("Pilih berkas terlebih dahulu.");
+        const asset: PublicAsset = { id: crypto.randomUUID(), provider: "local", mime: file.type, status: "ready", playbackId: null, url: URL.createObjectURL(file) };
+        assets.set(asset.id, asset); result = asset;
+      } else if (url.pathname.startsWith("/api/uploads/") && method === "DELETE") {
+        const id = url.pathname.split("/").at(-1)!; const asset = assets.get(id);
+        if (asset) URL.revokeObjectURL(asset.url);
+        assets.delete(id); result = { ok: true };
+      } else if (url.pathname === "/api/posts" && method === "GET") {
+        const scope = url.searchParams.get("scope"); const kind = url.searchParams.get("kind"); const query = (url.searchParams.get("q") ?? "").toLocaleLowerCase("id");
+        if (scope === "admin" && !admin) throw new Error("Masuk sebagai admin.");
+        const filtered = posts.filter(p => (scope === "mine" ? mine.has(p.id) : scope === "admin" ? p.status === url.searchParams.get("status") : p.status === "approved") && social.matches(p, url) && (!kind || p.kind === kind) && `${p.title} ${p.body} ${p.subject}`.toLocaleLowerCase("id").includes(query));
+        filtered.sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt));
       const offset = Number(url.searchParams.get("offset") ?? 0);
-      result = { posts: filtered.slice(offset, offset + 20), hasMore: filtered.length > offset + 20 };
-    } else if (url.pathname === "/api/posts" && method === "POST") {
-      const input: PreviewSubmission = previewSubmissionSchema.parse(body); const timestamp = new Date().toISOString();
-      const common = { ...base, ...input, id: crypto.randomUUID(), status: "pending" as const, createdAt: timestamp, publishedAt: null, assets: input.assetIds.map(id => { const asset = assets.get(id); if (!asset) throw new Error("Unggahan tidak ditemukan."); return asset; }) };
-      const post: FeedPost = input.kind === "poll" ? { ...common, kind: "poll", poll: inputPoll(input) } : { ...common, kind: input.kind };
-      posts.unshift(post); mine.add(post.id); result = { post };
-    } else {
-      const parts = url.pathname.split("/"); const isAdmin = parts[2] === "admin";
-      const id = parts[isAdmin ? 4 : 3]; const post = posts.find(p => p.id === id);
-      if (!post) throw new Error("Kiriman tidak ditemukan.");
-      if (!isAdmin && method === "GET" && parts.length === 4) {
-        if (post.status !== "approved" && !mine.has(id) && !admin) throw new Error("Kiriman tidak ditemukan.");
-        result = post;
-      } else if (isAdmin && method === "POST") {
-        if (!admin) throw new Error("Masuk sebagai admin.");
-        const input = moderationSchema.parse(body);
-        if (body.revision !== post.revision) throw new Error("Kiriman telah berubah.");
-        post.status = input.action === "approve" ? "approved" : input.action === "hide" ? "hidden" : "rejected";
-        post.publishedAt = input.action === "approve" ? new Date().toISOString() : null; post.reason = input.reason; post.revision++; result = { post };
-      } else if (parts[4] === "vote" && method === "POST") {
-        if (post.kind !== "poll" || post.status !== "approved") throw new Error("Polling belum tersedia.");
-        if (post.poll.closed) throw new Error("Polling sudah ditutup.");
-        const { optionIds } = pollVoteSchema.parse(body);
-        const selected = new Set(optionIds);
-        if (selected.size !== optionIds.length || (!post.poll.multiple && selected.size > 1) || optionIds.some(option => !post.poll.options.some(item => item.id === option))) throw new Error("Pilihan jawaban tidak valid.");
-        const previous = new Set(post.poll.ballot);
-        for (const option of post.poll.options) option.votes += Number(selected.has(option.id)) - Number(previous.has(option.id));
-        post.poll.participants += Number(selected.size > 0) - Number(previous.size > 0);
-        post.poll.ballot = optionIds; changed(post); result = { post };
-      } else if (parts[4] === "close" && method === "POST") {
-        if (!mine.has(id)) throw new Error("Hanya pengirim yang dapat menutup polling.");
-        if (post.kind !== "poll" || post.status !== "approved") throw new Error("Polling belum tersedia.");
-        post.poll.closed = true; changed(post); result = { post };
-      } else if (parts[4] === "appreciate" && method === "POST") {
-        post.appreciated = !post.appreciated; post.appreciations += post.appreciated ? 1 : -1; result = { active: post.appreciated, count: post.appreciations };
-      } else if (parts[4] === "report" && method === "POST") { post.reports = (post.reports ?? 0) + 1; result = { ok: true }; }
-      else if (method === "PUT" && mine.has(id)) {
-        if (!canEditPost(post)) throw new Error("Kiriman ini tidak dapat diedit.");
-        const input = post.kind === "poll" ? pollSubmissionSchema.parse(body) : previewSubmissionSchema.parse(body);
-        if (input.kind !== post.kind) throw new Error("Jenis kiriman tidak dapat diubah.");
-        Object.assign(post, input.kind === "poll" ? { ...input, poll: inputPoll(input) } : input, { assets: input.assetIds.map(id => assets.get(id) ?? post.assets.find(a => a.id === id)).filter(Boolean), status: "pending", publishedAt: null, reason: "", revision: post.revision + 1 }); result = { post };
-      } else throw new Error("Aksi tidak tersedia dalam demo.");
+        result = { posts: filtered.slice(offset, offset + 20).map(social.project), hasMore: filtered.length > offset + 20 };
+      } else if (url.pathname === "/api/posts" && method === "POST") {
+        const input: PreviewSubmission = previewSubmissionSchema.parse(body); const context = social.context(body); const timestamp = new Date().toISOString();
+        const common = { ...base, ...input, id: crypto.randomUUID(), status: "pending" as const, createdAt: timestamp, publishedAt: null, assets: input.assetIds.map(id => { const asset = assets.get(id); if (!asset) throw new Error("Unggahan tidak ditemukan."); return asset; }) };
+        const post: FeedPost = input.kind === "poll" ? { ...common, kind: "poll", poll: inputPoll(input) } : { ...common, kind: input.kind };
+        posts.unshift(post); mine.add(post.id); social.configure(post, context); result = { post: social.project(post) };
+      } else {
+        const parts = url.pathname.split("/"); const isAdmin = parts[2] === "admin";
+        const id = parts[isAdmin ? 4 : 3]; const post = posts.find(p => p.id === id);
+        if (!post) throw new Error("Kiriman tidak ditemukan.");
+        if (!isAdmin && method === "GET" && parts.length === 4) {
+          if (post.status !== "approved" && !mine.has(id) && !admin) throw new Error("Kiriman tidak ditemukan.");
+          result = social.project(post);
+        } else if (isAdmin && method === "POST") {
+          if (!admin) throw new Error("Masuk sebagai admin.");
+          const input = moderationSchema.parse(body);
+          if (body.revision !== post.revision) throw new Error("Kiriman telah berubah.");
+          post.status = input.action === "approve" ? "approved" : input.action === "hide" ? "hidden" : "rejected";
+          post.publishedAt = input.action === "approve" ? new Date().toISOString() : null; post.reason = input.reason; post.revision++; social.reviewed(post); result = { post: social.project(post) };
+        } else if (parts[4] === "vote" && method === "POST") {
+          if (post.kind !== "poll" || post.status !== "approved") throw new Error("Polling belum tersedia.");
+          if (post.poll.closed) throw new Error("Polling sudah ditutup.");
+          const { optionIds } = pollVoteSchema.parse(body);
+          const selected = new Set(optionIds);
+          if (selected.size !== optionIds.length || (!post.poll.multiple && selected.size > 1) || optionIds.some(option => !post.poll.options.some(item => item.id === option))) throw new Error("Pilihan jawaban tidak valid.");
+          const previous = new Set(post.poll.ballot);
+          for (const option of post.poll.options) option.votes += Number(selected.has(option.id)) - Number(previous.has(option.id));
+          post.poll.participants += Number(selected.size > 0) - Number(previous.size > 0);
+          post.poll.ballot = optionIds; changed(post); result = { post: social.project(post) };
+        } else if (parts[4] === "close" && method === "POST") {
+          if (!mine.has(id)) throw new Error("Hanya pengirim yang dapat menutup polling.");
+          if (post.kind !== "poll" || post.status !== "approved") throw new Error("Polling belum tersedia.");
+          post.poll.closed = true; changed(post); result = { post: social.project(post) };
+        } else if (parts[4] === "appreciate" && method === "POST") {
+          post.appreciated = !post.appreciated; post.appreciations += post.appreciated ? 1 : -1; result = { active: post.appreciated, count: post.appreciations };
+        } else if (parts[4] === "report" && method === "POST") { post.reports = (post.reports ?? 0) + 1; result = { ok: true }; }
+        else if (method === "PUT" && mine.has(id)) {
+          if (!canEditPost(social.project(post))) throw new Error("Kiriman ini tidak dapat diedit.");
+          const context = social.context(body);
+          const input = post.kind === "poll" ? pollSubmissionSchema.parse(body) : previewSubmissionSchema.parse(body);
+          if (input.kind !== post.kind) throw new Error("Jenis kiriman tidak dapat diubah.");
+          Object.assign(post, input.kind === "poll" ? { ...input, poll: inputPoll(input) } : input, { assets: input.assetIds.map(id => assets.get(id) ?? post.assets.find(a => a.id === id)).filter(Boolean), status: "pending", publishedAt: null, reason: "", revision: post.revision + 1 }); social.configure(post, context); changed(post); result = { post: social.project(post) };
+        } else throw new Error("Aksi tidak tersedia dalam demo.");
+      }
+      return structuredClone(result) as T;
+    } catch (error) {
+      if (error instanceof ZodError) throw new Error(error.issues[0]?.message ?? "Periksa isi kiriman.");
+      throw error;
     }
-    return structuredClone(result) as T;
   };
 }
 export const previewApi = createPreviewApi();

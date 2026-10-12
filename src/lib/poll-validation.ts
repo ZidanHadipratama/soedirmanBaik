@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { shortSubmissionSchema } from "./social-validation";
 import { submissionSchema } from "./validation";
 
 export const pollSubmissionSchema = z.object({
@@ -22,5 +23,5 @@ export const pollSubmissionSchema = z.object({
     labels.add(label); ids.add(option.id);
   });
 });
-export const previewSubmissionSchema = z.union([pollSubmissionSchema, submissionSchema]);
+export const previewSubmissionSchema = z.union([pollSubmissionSchema, shortSubmissionSchema, submissionSchema]);
 export const pollVoteSchema = z.object({ optionIds: z.array(z.uuid()).max(12) });

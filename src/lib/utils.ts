@@ -19,3 +19,8 @@ export function relativeDate(value: string) {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} jam`;
   return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(new Date(value));
 }
+
+export function safeBackLink(value: string | null, fallback = "/") {
+  if (!value?.startsWith("/")) return fallback;
+  try { const url = new URL(value, "https://app.invalid"); return url.origin === "https://app.invalid" && ["/", "/ruang", "/diskusi", "/articles", "/admin"].includes(url.pathname) ? `${url.pathname}${url.search}${url.hash}` : fallback; } catch { return fallback; }
+}

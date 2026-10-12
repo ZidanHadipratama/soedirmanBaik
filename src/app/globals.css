@@ -338,3 +338,90 @@ svg { flex-shrink: 0; }
   .poll-card { padding-inline: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .poll-option-bar { transition: none; } }
+
+/* Preview rooms and conversations extend the existing feed system. */
+.section-tabs { margin: 0 0 20px; padding: 4px; }
+.kind-picker.with-poll { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.field select { display: block; width: 100%; min-height: 48px; margin-top: 8px; padding: 12px 14px; border: 1px solid var(--input-border); border-radius: var(--radius-control); background: var(--surface); color: var(--navy); font-size: 16px; font-weight: 400; }
+select:focus-visible, summary:focus-visible { outline: 3px solid var(--navy); outline-offset: 3px; }
+.thread-editor { border: 0; padding: 0; margin: 20px 0; min-width: 0; }
+.thread-editor-row { display: flex; gap: 8px; align-items: flex-start; }
+.thread-editor-row .field { flex: 1; min-width: 0; }
+.thread-editor-row .icon-button { margin-top: 48px; flex-shrink: 0; }
+.post-room { display: block; width: fit-content; max-width: calc(100% - 40px); margin: 0 20px 12px; color: var(--blue-dark); background: var(--blue-light); padding: 4px 12px; border-radius: 999px; font-size: 12px; overflow-wrap: anywhere; }
+.post-room:hover { text-decoration: underline; }
+.post-social-actions { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border); margin-top: 12px; }
+.discussion-link { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 48px; font-size: 13px; color: var(--muted); }
+.discussion-link:hover { color: var(--navy); }
+.thread-count { border-radius: 6px; background: var(--soft); padding: 2px 8px; font-size: 12px; }
+.save-button { margin-left: auto; border: 0; background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; border-radius: 50%; }
+.save-button:hover, .save-button.is-saved { color: var(--blue-dark); background: var(--blue-light); }
+.thread-part-preview { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.thread-part-preview p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.section-feedback { padding: 32px 20px; color: var(--muted); text-align: center; font-size: 14px; }
+.context-back { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+.context-back:hover { color: var(--navy); text-decoration: underline; }
+.room-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.room-card, .room-heading, .room-form, .social-review-card, .personal-reply { padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); min-width: 0; }
+.room-card h2, .room-heading h2, .room-form h2 { font-size: 20px; line-height: 1.4; margin: 12px 0 8px; overflow-wrap: anywhere; }
+.room-card p, .room-heading p { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; white-space: pre-wrap; }
+.room-card a:hover h2 { text-decoration: underline; text-underline-offset: 4px; }
+.room-symbol { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: var(--blue-light); color: var(--blue-dark); border-radius: 12px; }
+.room-count { display: block; font-size: 12px; color: var(--muted); margin-top: 16px; }
+.room-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.room-heading { margin-bottom: 24px; }
+.room-heading details { margin-top: 16px; }
+.room-heading summary { cursor: pointer; font-size: 14px; min-height: 48px; display: list-item; padding-block: 12px; }
+.room-form { margin-bottom: 24px; }
+.room-form-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.thread-parts { display: flex; flex-direction: column; gap: 0; margin: 16px 0 24px; border-left: 2px solid var(--border); padding-left: 16px; }
+.thread-part { position: relative; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); margin-bottom: 12px; }
+.thread-part::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--blue-dark); position: absolute; left: -23px; top: 22px; }
+.thread-part header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+.thread-part header > span { color: var(--muted); }
+.thread-part p { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+.part-compose { padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); margin: 24px 0; }
+.part-compose h2 { font-size: 18px; }
+.discussion-admin { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--blue-light); padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 13px; }
+.discussion-section { padding: 24px 20px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-card); margin-top: 24px; }
+.discussion-section > h2 { display: flex; align-items: center; gap: 8px; font-size: 18px; margin-bottom: 16px; }
+.discussion-section > h2 span { font-size: 14px; color: var(--muted); }
+.discussion-locked { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--muted); padding: 12px; background: var(--soft); border-radius: 12px; margin: 16px 0; }
+.discussion-locked svg { flex-shrink: 0; margin-top: 3px; }
+.reply-group { padding-block: 16px; border-bottom: 1px solid var(--border); }
+.discussion-reply header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+.discussion-reply time { color: var(--muted); font-size: 12px; margin-left: auto; }
+.discussion-reply p { font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 8px; }
+.reply-badge { background: var(--blue-light); color: var(--blue-dark); font-size: 11px; padding: 1px 6px; border-radius: 6px; }
+.reply-target { font-size: 12px; color: var(--muted); display: block; margin-top: 4px; }
+.reply-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.reply-actions .icon-button { margin-left: auto; }
+.reply-actions .text-button { font-size: 12px; }
+.nested-replies { border-left: 2px solid var(--border); padding-left: 16px; margin-left: 12px; }
+.nested-replies .discussion-reply { padding-top: 12px; }
+.discussion-reply.deleted p { color: var(--muted); font-style: italic; }
+.reply-collapse { font-size: 12px; }
+.reply-compose { padding-top: 20px; }
+.reply-compose .field { margin: 0 0 8px; }
+.reply-compose > textarea { width: 100%; display: block; min-height: 96px; padding: 12px 14px; border: 1px solid var(--input-border); border-radius: 12px; font-size: 16px; line-height: 1.7; color: var(--navy); resize: vertical; }
+.reply-compose > .button { display: flex; margin-left: auto; margin-top: 16px; }
+.replying-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.social-review-list, .personal-replies { display: flex; flex-direction: column; gap: 16px; }
+.social-review-card p, .personal-reply p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0; font-size: 14px; }
+.social-review-card > a, .personal-reply-context { font-size: 14px; color: var(--blue-dark); display: block; overflow-wrap: anywhere; }
+.social-review-card > strong { display: block; margin-top: 12px; font-size: 13px; }
+.social-review-card > .button { margin-top: 16px; }
+.personal-reply > time { font-size: 12px; color: var(--muted); }
+.gallery-short { background: var(--blue-light); }
+@media (max-width: 767px) {
+  .mobile-nav.with-social { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-inline: 4px; }
+  .mobile-nav.with-social span { font-size: 11px; }
+  .section-tabs { margin-inline: 16px; }
+  .rooms-view, .thread-view, .personal-replies, .social-review-list { margin-inline: 16px; }
+  .rooms-view .feed-tools { padding-inline: 0; }
+  .rooms-view .post-card, .thread-view .post-card { border: 1px solid var(--border); border-radius: var(--radius-card); }
+  .room-grid { grid-template-columns: minmax(0, 1fr); }
+  .discussion-section { padding: 20px 16px; }
+  .nested-replies { margin-left: 4px; padding-left: 12px; }
+  .discussion-reply time { margin-left: 0; }
+}
