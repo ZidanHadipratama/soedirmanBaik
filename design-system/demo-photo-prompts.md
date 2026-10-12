@@ -26,3 +26,7 @@ Asset: `public/assets/demo/meal-sharing.webp`
 
 Use case: photorealistic-natural. Asset type: portrait photograph for an Indonesian community good-act social feed, Soedirman Baik. Generate one single full-frame original photograph, portrait 4:5 composition. Documentary lifestyle photography, natural light, believable Indonesian tropical setting, ordinary casual clothing, candid body language, realistic skin texture, clear primary action. Subjects are fictional Indonesian adults aged 20–30, not identifiable real people. Keep faces and main action comfortably within the central area so it also crops well into a square gallery tile. No text, lettering, logos, badges, university insignia, watermark, collage, borders, or UI. Not polished commercial stock posing. Scene: a small group of young adult volunteers preparing food packages for community sharing at a modest neighborhood hall. One volunteer hands a closed unbranded kraft meal box to another adult across a long table with neat rows of matching boxes. All participants are active and dignified. Bright soft window light, candid medium-wide shot, warm brown paper and pale blue neutral clothing, visible natural textures. No signs or readable labels.
 
+
+## community-moments video
+
+Asset: `public/assets/demo/community-moments.mp4`. A 12-second silent slideshow assembled with ffmpeg from the four AI illustrations above (three seconds each), H.264, 720 × 900, 24 fps, faststart. The video caption explicitly identifies it as a sequence of AI illustrations for fictional example content.

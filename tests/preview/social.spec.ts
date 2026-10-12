@@ -41,6 +41,15 @@ test("rooms, follow filters, saved posts, context links, and browser-local reset
   const requests: string[] = []; const errors: string[] = [];
   page.on("request", req => { if (new URL(req.url()).pathname.startsWith("/api/")) requests.push(req.url()); });
   page.on("pageerror", error => errors.push(error.message));
+  await nav(page).getByRole("link", { name: "Ruang", exact: true }).click();
+  await expect(page.locator(".room-card")).toHaveCount(5);
+  while (await page.getByRole("button", { name: /^Berhenti mengikuti / }).count()) {
+    const followed = page.getByRole("button", { name: /^Berhenti mengikuti / }).first();
+    const name = await followed.getAttribute("aria-label");
+    await followed.click();
+    await expect(page.getByRole("button", { name: name!, exact: true })).toHaveCount(0);
+  }
+  await nav(page).getByRole("link", { name: "Beranda", exact: true }).click();
   await page.getByRole("button", { name: "Diikuti", exact: true }).click();
   await expect(page.getByText("Ikuti Ruang untuk melihat kirimannya di sini.", { exact: true })).toBeVisible();
   await nav(page).getByRole("link", { name: "Ruang", exact: true }).click();
@@ -61,14 +70,17 @@ test("rooms, follow filters, saved posts, context links, and browser-local reset
   await expect(page).toHaveURL(/\/ruang\?slug=belajar-bareng/);
   await nav(page).getByRole("link", { name: "Beranda", exact: true }).click();
   await page.getByRole("button", { name: "Diikuti", exact: true }).click();
-  await expect(page.locator(".post-room")).toHaveText(["Belajar Bareng", "Belajar Bareng", "Belajar Bareng", "Belajar Bareng"]);
+  await expect(page.locator(".post-room")).toHaveCount(20);
+  expect((await page.locator(".post-room").allTextContents()).every(value => value === "Belajar Bareng")).toBeTruthy();
   await nav(page).getByRole("link", { name: "Kiriman saya", exact: true }).click();
   await page.getByRole("button", { name: "Tersimpan", exact: true }).click();
   await expect(storyCard(page, sample)).toBeVisible();
   await storyCard(page, sample).getByRole("button", { name: "Batalkan simpan", exact: true }).click();
   await expect(storyCard(page, sample)).toHaveCount(0);
-  await page.reload();
+  while (await page.getByRole("button", { name: "Batalkan simpan", exact: true }).count()) await page.getByRole("button", { name: "Batalkan simpan", exact: true }).first().click();
   await expect(page.getByText("Simpan kiriman yang ingin kamu baca lagi.", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.locator("article.post-card")).toHaveCount(10);
   expect(requests).toEqual([]); expect(errors).toEqual([]);
 });
 
@@ -87,7 +99,7 @@ test("compose a reviewed thread, append, reject, correct, and publish its contin
   await expect(page.getByRole("button", { name: "Edit kiriman", exact: true })).toHaveCount(0);
   await admin(page);
   await page.getByRole("group", { name: "Jenis moderasi" }).getByRole("button", { name: "Lanjutan", exact: true }).click();
-  await page.getByRole("button", { name: "Kembalikan lanjutan", exact: true }).click();
+  await page.locator(".social-review-card").filter({ hasText: "Perkembangan kegiatan terbaru." }).getByRole("button", { name: "Kembalikan lanjutan", exact: true }).click();
   const dialog = page.getByRole("dialog"); await dialog.getByRole("textbox", { name: "Alasan", exact: true }).fill("Tambahkan konteks kegiatan.");
   await dialog.getByRole("button", { name: "Simpan", exact: true }).click();
   await nav(page).getByRole("link", { name: "Kiriman saya", exact: true }).click();
@@ -96,8 +108,8 @@ test("compose a reviewed thread, append, reject, correct, and publish its contin
   await page.getByRole("textbox", { name: "Lanjutan", exact: true }).fill("Perkembangan lengkap: buku sudah siap dibagikan Sabtu.");
   await page.getByRole("button", { name: "Kirim lanjutan", exact: true }).click();
   await admin(page); await page.getByRole("group", { name: "Jenis moderasi" }).getByRole("button", { name: "Lanjutan", exact: true }).click();
-  await page.getByRole("button", { name: "Terbitkan lanjutan", exact: true }).click();
-  await expect(page.getByText("Tidak ada lanjutan menunggu review.", { exact: true })).toBeVisible();
+  await page.locator(".social-review-card").filter({ hasText: "Perkembangan lengkap: buku sudah siap dibagikan Sabtu." }).getByRole("button", { name: "Terbitkan lanjutan", exact: true }).click();
+  await expect(page.locator(".social-review-card").filter({ hasText: "Perkembangan lengkap: buku sudah siap dibagikan Sabtu." })).toHaveCount(0);
   await nav(page).getByRole("link", { name: "Beranda", exact: true }).click();
   await expect(storyCard(page, body).getByText("3 bagian", { exact: true })).toBeVisible();
   await storyCard(page, body).getByRole("link", { name: /Balas/ }).click();
@@ -127,10 +139,10 @@ test("anonymous replies, flattened nesting, deletion placeholders, reports, and 
   await page.getByRole("dialog").getByRole("button", { name: "Kirim laporan", exact: true }).click();
   await admin(page); await page.getByRole("group", { name: "Jenis moderasi" }).getByRole("button", { name: "Balasan", exact: true }).click();
   await expect(page.getByText("Periksa konteks balasan ini.", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Sembunyikan balasan", exact: true }).click();
+  await page.locator(".social-review-card").filter({ hasText: "Periksa konteks balasan ini." }).getByRole("button", { name: "Sembunyikan balasan", exact: true }).click();
   await page.getByRole("dialog").getByRole("textbox", { name: "Alasan", exact: true }).fill("Tidak sesuai aturan diskusi.");
   await page.getByRole("dialog").getByRole("button", { name: "Simpan", exact: true }).click();
-  await expect(page.getByText("Tidak ada balasan dilaporkan.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Periksa konteks balasan ini.", { exact: true })).toHaveCount(0);
   await nav(page).getByRole("link", { name: "Beranda", exact: true }).click();
   await storyCard(page, sample).getByRole("link", { name: /Balas/ }).click();
   await page.getByRole("button", { name: "Kunci diskusi", exact: true }).click();

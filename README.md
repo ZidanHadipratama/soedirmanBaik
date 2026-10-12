@@ -84,3 +84,13 @@ Percakapan menggunakan label **Penulis** dan **Anonim A/B/C** yang konsisten han
 **Kiriman saya** berisi tab Kiriman, Balasan, dan Tersimpan. Admin memiliki tab Kiriman, Lanjutan, Balasan, dan Ruang; Ruang hanya dibuat atau diubah oleh admin. Permalink Ruang tetap sama setelah namanya diubah.
 
 Semua operasi ini berjalan di adapter browser-only; tidak ada endpoint backend baru, pendaftaran, profil publik, atau penyimpanan bersama. Data, mengikuti Ruang, dan simpan kiriman reset saat reload. Backend produksi mempertahankan kontrak dan skema empat format sebelumnya.
+
+## Konten contoh lengkap
+
+Demo otomatis berisi **112 kiriman publik** di lima Ruang: 32 cerita singkat, 25 foto, 16 artikel, 18 polling, 11 tautan, dan 10 video. Ada **503 balasan**, thread beberapa bagian, diskusi terkunci, serta contoh hasil polling. Feed dan Jelajahi memuat 20 kiriman per halaman.
+
+Kiriman saya berisi 15 kiriman dengan beragam status, 25 balasan sendiri, dan 10 kiriman tersimpan. Dua Ruang sudah diikuti. Coba admin untuk melihat kiriman menunggu review, tiga lanjutan terpisah, lima laporan balasan, dan pengelolaan Ruang.
+
+Semua isi adalah konten fiktif yang diberi label contoh. Foto merupakan ilustrasi AI; video merupakan slideshow 12 detik dari empat foto tersebut. Tidak ada laporan kegiatan nyata atau akun orang sungguhan. Interaksi tetap berjalan di browser dan reset saat halaman dimuat ulang.
+
+Dataset berada di `src/lib/demo-content.ts`; factory `createPreviewApi()` tetap menyediakan fixture kecil untuk pengujian, sedangkan UI menggunakan `createPreviewApi({ full: true })`.

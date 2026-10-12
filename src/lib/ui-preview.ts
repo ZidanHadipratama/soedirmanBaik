@@ -1,4 +1,5 @@
 import { ZodError } from "zod";
+import { createFullDemoContent } from "./demo-content";
 import { createSocialPreview } from "./social-preview";
 import type { Post, PublicAsset } from "./types";
 import { moderationSchema } from "./validation";
@@ -6,7 +7,7 @@ import { pollSubmissionSchema, pollVoteSchema, previewSubmissionSchema } from ".
 import { canEditPost, PREVIEW_POST_CHANGED, type FeedPost, type PollPost, type PreviewSubmission } from "./preview-types";
 
 // Browser-only demo data. This module never calls the production API.
-export function createPreviewApi() {
+export function createPreviewApi({ full = false }: { full?: boolean } = {}) {
   const now = Date.now();
   const base = { subject: "", title: "", body: "", url: "", reason: "", example: true, revision: 1, appreciations: 0, appreciated: false, assets: [] };
   function example(id: string, values: Partial<Post>): Post {
@@ -55,7 +56,9 @@ export function createPreviewApi() {
   const mine = new Set(["demo-pending", "demo-rejected"]);
   const assets = new Map<string, PublicAsset>();
   let admin = false;
-  const social = createSocialPreview(posts, mine, () => admin, changed);
+  const extra = full ? createFullDemoContent(now) : undefined;
+  if (extra) { posts.push(...extra.posts); for (const id of extra.owned) mine.add(id); }
+  const social = createSocialPreview(posts, mine, () => admin, changed, extra);
 
   return async function previewApi<T>(path: string, options?: RequestInit): Promise<T> {
     try {
@@ -135,4 +138,4 @@ export function createPreviewApi() {
     }
   };
 }
-export const previewApi = createPreviewApi();
+export const previewApi = createPreviewApi({ full: true });

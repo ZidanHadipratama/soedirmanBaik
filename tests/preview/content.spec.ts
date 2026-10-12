@@ -1,0 +1,31 @@
+import { test, expect } from "@playwright/test";
+
+test("dense feed, gallery pagination, populated personal pages, and playable video", async ({ page }) => {
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator("article.post-card")).toHaveCount(20);
+  await page.getByRole("button", { name: "Muat lainnya", exact: true }).click();
+  await expect(page.locator("article.post-card")).toHaveCount(40);
+  await page.getByRole("button", { name: "Video", exact: true }).click();
+  await expect(page.locator("video.post-video")).toHaveCount(10);
+  const video = page.locator("video.post-video").first();
+  await video.scrollIntoViewIfNeeded();
+  await video.evaluate(async element => { const media = element as HTMLVideoElement; media.muted = true; await media.play(); });
+  await expect.poll(() => video.evaluate(element => (element as HTMLVideoElement).currentTime)).toBeGreaterThan(.1);
+  expect(await video.evaluate(element => (element as HTMLVideoElement).duration)).toBeCloseTo(12, 0);
+  await video.evaluate(element => (element as HTMLVideoElement).pause());
+  const nav = page.getByRole("navigation", { name: "Navigasi utama" }).filter({ visible: true });
+  await nav.getByRole("link", { name: "Jelajahi", exact: true }).click();
+  await page.getByRole("button", { name: "Semua", exact: true }).click();
+  await expect(page.locator(".gallery-tile")).toHaveCount(20);
+  await page.getByRole("button", { name: "Muat lainnya", exact: true }).click();
+  await expect(page.locator(".gallery-tile")).toHaveCount(40);
+  await nav.getByRole("link", { name: "Kiriman saya", exact: true }).click();
+  await expect(page.locator("article.post-card")).toHaveCount(15);
+  await page.getByRole("button", { name: "Tersimpan", exact: true }).click();
+  await expect(page.locator("article.post-card")).toHaveCount(10);
+  await page.getByRole("group", { name: "Kiriman pribadi" }).getByRole("button", { name: "Balasan", exact: true }).click();
+  await expect(page.locator(".personal-reply")).toHaveCount(25);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  expect(errors).toEqual([]);
+});

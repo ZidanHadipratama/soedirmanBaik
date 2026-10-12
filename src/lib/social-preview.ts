@@ -1,10 +1,11 @@
+import type { FullDemo } from "./demo-content";
 import type { FeedPost, Room, ThreadPart, Reply, ThreadDetail } from "./preview-types";
 import { PREVIEW_SOCIAL_CHANGED } from "./preview-types";
 import { moderationSchema } from "./validation";
 import { reasonSchema, replySchema, roomSchema, socialContextSchema, storyText } from "./social-validation";
 
 type StoredReply = Omit<Reply, "author" | "replyingTo" | "owned" | "reported"> & { actor: string; targetId: string | null; reporters: Map<string, string> };
-export function createSocialPreview(posts: FeedPost[], mine: Set<string>, isAdmin: () => boolean, emit: (post: FeedPost) => void) {
+export function createSocialPreview(posts: FeedPost[], mine: Set<string>, isAdmin: () => boolean, emit: (post: FeedPost) => void, seed?: FullDemo) {
   const rules = "Bahas kegiatan positif. Hormati orang lain dan jaga privasi.";
   const rooms: Room[] = [
     { id: "umum", slug: "umum", name: "Umum", description: "Cerita dan percakapan baik untuk semua.", rules, following: false, postCount: 0 },
@@ -175,6 +176,18 @@ export function createSocialPreview(posts: FeedPost[], mine: Set<string>, isAdmi
       { id: "demo-reply-b", postId: "demo-thread", parentId: null, actor: "guest-b", targetId: null, body: "Ada beberapa buku cerita yang bisa kusumbangkan.", deleted: false, reporters: new Map(), createdAt: timestamp },
     );
     for (const reply of replies) alias(reply.postId, reply.actor);
+  }
+  if (seed) {
+    for (const [id, roomId] of Object.entries(seed.roomIds)) roomIds.set(id, roomId);
+    for (const [id, values] of Object.entries(seed.parts)) parts.set(id, values);
+    for (const value of seed.replies) {
+      const { reportReason, ...reply } = value;
+      replies.push({ ...reply, reporters: reportReason ? new Map([["sample-reporter", reportReason]]) : new Map() });
+      alias(reply.postId, reply.actor);
+    }
+    for (const id of seed.saved) saved.add(id);
+    for (const id of seed.locked) locked.add(id);
+    for (const room of rooms) room.following = seed.followed.includes(room.id);
   }
   return { context, configure, reviewed, matches, project, handle };
 }
