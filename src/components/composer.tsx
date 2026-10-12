@@ -1,14 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, Check, ImagePlus, Link2, Shield, Upload, Video, X } from "lucide-react";
-import { POST_KINDS, kindLabels, type Post, type PostKind } from "@/lib/types";
+import { BarChart3, BookOpen, Check, ImagePlus, Link2, Shield, Upload, Video, X } from "lucide-react";
+import { feedKinds as POST_KINDS, feedKindLabels as kindLabels, type FeedPost as Post, type FeedKind as PostKind } from "@/lib/preview-types";
+import { pollSubmissionSchema } from "@/lib/poll-validation";
 import { api, cn } from "@/lib/utils";
 import { submissionSchema, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES } from "@/lib/validation";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
+import { PollEditor } from "./poll-editor";
 
 type UploadItem = { id: string; url: string; status: string };
-const kindIcons = { photo: ImagePlus, video: Video, article: BookOpen, link: Link2 };
+const kindIcons = { photo: ImagePlus, video: Video, article: BookOpen, link: Link2, poll: BarChart3 };
 function uploadRequest(url: string, method: "POST" | "PUT", data: FormData | File, progress: (n: number) => void): Promise<Record<string, unknown>> {
   if (process.env.NEXT_PUBLIC_UI_PREVIEW === "true") {
     progress(100);
@@ -40,6 +42,9 @@ export function Composer({ open, onOpenChange, onSubmitted, editing, backend }: 
   const [uploads, setUploads] = useState<UploadItem[]>(editing?.assets.map(a => ({ id: a.id, url: a.url, status: a.status })) ?? []);
   const [uploading, setUploading] = useState(false); const [progress, setProgress] = useState(0);
   const [submitting, setSubmitting] = useState(false); const [done, setDone] = useState(false); const [error, setError] = useState("");
+  const [pollOptions, setPollOptions] = useState(() => editing?.kind === "poll" ? editing.poll.options.map(({ id, label }) => ({ id, label })) : Array.from({ length: 2 }, () => ({ id: crypto.randomUUID(), label: "" })));
+  const [multiple, setMultiple] = useState(editing?.kind === "poll" ? editing.poll.multiple : false);
+  const [pollErrors, setPollErrors] = useState<Record<string, string>>({});
   const fileInput = useRef<HTMLInputElement>(null);
   const newUploads = useRef(new Set<string>()); const submitted = useRef(false);
   useEffect(() => () => { if (!submitted.current) for (const id of newUploads.current) void api(`/api/uploads/${id}`, { method: "DELETE" }).catch(() => {}); }, []);
@@ -50,7 +55,7 @@ export function Composer({ open, onOpenChange, onSubmitted, editing, backend }: 
   async function changeKind(next: PostKind) {
     if (next === kind || uploading) return;
     for (const item of uploads) await remove(item);
-    setKind(next); setError("");
+    setKind(next); setError(""); setPollErrors({});
   }
   async function choose(files: FileList | null) {
     if (!files?.length) return;
@@ -82,26 +87,31 @@ export function Composer({ open, onOpenChange, onSubmitted, editing, backend }: 
     finally { setUploading(false); if (fileInput.current) fileInput.current.value = ""; }
   }
   async function submit(event: React.FormEvent) {
-    event.preventDefault(); setError("");
-    const input = { kind, subject, title, body, url, assetIds: uploads.map(u => u.id) };
-    const parsed = submissionSchema.safeParse(input);
-    if (!parsed.success) { setError(parsed.error.issues[0].message); return; }
+    event.preventDefault(); setError(""); setPollErrors({});
+    const input = kind === "poll" ? { kind, subject: "", title, body, url: "", assetIds: [], poll: { options: pollOptions, multiple } } : { kind, subject, title, body, url, assetIds: uploads.map(u => u.id) };
+    const parsed = (kind === "poll" ? pollSubmissionSchema : submissionSchema).safeParse(input);
+    if (!parsed.success) {
+      if (kind === "poll") setPollErrors(Object.fromEntries(parsed.error.issues.map(issue => [issue.path.join("."), issue.message])));
+      else setError(parsed.error.issues[0].message);
+      return;
+    }
     setSubmitting(true);
-    try { await api(editing ? `/api/posts/${editing.id}` : "/api/posts", { method: editing ? "PUT" : "POST", body: JSON.stringify(input) }); submitted.current = true; setDone(true); onSubmitted(); }
+    try { await api(editing ? `/api/posts/${editing.id}` : "/api/posts", { method: editing ? "PUT" : "POST", body: JSON.stringify(parsed.data) }); submitted.current = true; setDone(true); onSubmitted(); }
     catch (e) { setError((e as Error).message); } finally { setSubmitting(false); }
   }
   return <Modal open={open} onOpenChange={value => { if (!uploading && !submitting) onOpenChange(value); }} title={done ? "Kiriman terkirim" : editing ? "Perbaiki kiriman" : "Bagikan kebaikan"} description={done ? undefined : "Nama pengirim tidak ditampilkan."} className="composer-dialog">
     {done ? <div className="submission-success"><span className="success-icon"><Check size={32} /></span><h3>Menunggu review.</h3><p>Cek status di Kiriman saya.</p><Button className="full-width" onClick={() => onOpenChange(false)}>Selesai</Button></div> : <form onSubmit={submit} className="composer-form">
-      <div className="kind-picker" role="group" aria-label="Jenis kiriman">{POST_KINDS.map(value => { const Icon = kindIcons[value]; return <button type="button" key={value} aria-pressed={kind === value} disabled={uploading || submitting || Boolean(editing)} className={cn("kind-option", kind === value && "selected")} onClick={() => void changeKind(value)}><Icon size={20} /><span>{kindLabels[value]}</span></button>; })}</div>
+      <div className={cn("kind-picker", process.env.NEXT_PUBLIC_UI_PREVIEW === "true" && "with-poll")} role="group" aria-label="Jenis kiriman">{POST_KINDS.map(value => { const Icon = kindIcons[value]; return <button type="button" key={value} aria-pressed={kind === value} disabled={uploading || submitting || Boolean(editing)} className={cn("kind-option", kind === value && "selected")} onClick={() => void changeKind(value)}><Icon size={20} /><span>{kindLabels[value]}</span></button>; })}</div>
       {["photo", "video"].includes(kind) && <div className="upload-section"><input ref={fileInput} id="media-upload" className="sr-only" type="file" multiple={kind === "photo"} accept={kind === "photo" ? "image/jpeg,image/png,image/webp" : "video/mp4,video/webm"} onChange={e => void choose(e.target.files)} disabled={uploading || submitting} aria-label={kind === "photo" ? "Pilih foto" : "Pilih video"} />
         {uploads.length > 0 && <div className="upload-previews">{uploads.map(item => <div className="upload-preview" key={item.id}>{kind === "photo" ? <div style={{ backgroundImage: `url('${item.url}')` }} role="img" aria-label="Foto yang dipilih" /> : <div className="video-upload-preview"><Video size={24} /><span>{item.status === "processing" ? "Memproses video" : "Video siap"}</span></div>}<button type="button" className="remove-upload" aria-label="Hapus unggahan" disabled={uploading || submitting} onClick={() => void remove(item)}><X size={16} /></button></div>)}</div>}
         {uploads.length < (kind === "photo" ? 4 : 1) && <button type="button" className="upload-target" disabled={uploading || submitting} onClick={() => fileInput.current?.click()}><span className="upload-icon"><Upload size={23} /></span><strong>{uploading ? "Mengunggah…" : kind === "photo" ? "Pilih foto" : "Pilih video"}</strong><span>{kind === "photo" ? "JPG, PNG, WebP · hingga 4 foto" : "MP4, WebM · maksimal 50 MB"}</span></button>}
         {uploading && <div className="upload-progress"><progress value={progress} max={100} aria-label="Progres unggahan" /><span>{progress}%</span></div>}
       </div>}
       {kind === "link" && <label className="field">Tautan<input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://" required maxLength={2000} autoComplete="url" /></label>}
-      {["article", "link"].includes(kind) && <label className="field">Judul{kind === "link" && <span className="optional">opsional</span>}<input aria-label="Judul" value={title} onChange={e => setTitle(e.target.value)} placeholder={kind === "article" ? "Judul ceritamu" : "Nama website atau kontribusi"} required={kind === "article"} maxLength={120} /></label>}
-      <label className="field">{kind === "article" ? "Artikel" : "Cerita"}<textarea aria-label={kind === "article" ? "Artikel" : "Cerita"} value={body} onChange={e => setBody(e.target.value)} aria-describedby={kind === "article" ? "markdown-hint" : undefined} placeholder={kind === "article" ? "## Awal cerita\n\nCeritakan kebaikannya…" : "Ceritakan kebaikannya…"} rows={kind === "article" ? 7 : 3} required minLength={3} maxLength={kind === "article" ? 10000 : 2000} />{kind === "article" && <span className="field-hint" id="markdown-hint">Gunakan Markdown: ## judul, **tebal**, - daftar, dan [tautan](https://…).</span>}<span className="character-count" aria-hidden="true">{body.length}/{kind === "article" ? "10.000" : "2.000"}</span></label>
-      <label className="field">Untuk siapa?<span className="optional">opsional</span><input aria-label="Untuk siapa?" aria-describedby="subject-hint" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Nama orang yang ingin diapresiasi" maxLength={80} /><span className="field-hint" id="subject-hint">Pastikan ia nyaman disebut.</span></label>
+      {["article", "link", "poll"].includes(kind) && <label className="field">{kind === "poll" ? "Pertanyaan" : "Judul"}{kind === "link" && <span className="optional">opsional</span>}<input aria-label={kind === "poll" ? "Pertanyaan" : "Judul"} value={title} onChange={e => setTitle(e.target.value)} placeholder={kind === "poll" ? "Kegiatan sosial berikutnya?" : kind === "article" ? "Judul ceritamu" : "Nama website atau kontribusi"} required={kind !== "link"} maxLength={kind === "poll" ? 160 : 120} aria-invalid={Boolean(pollErrors.title)} aria-describedby={pollErrors.title ? "poll-question-error" : undefined} />{pollErrors.title && <span id="poll-question-error" className="field-error" role="alert">{pollErrors.title}</span>}</label>}
+      {kind === "poll" && <PollEditor options={pollOptions} multiple={multiple} disabled={submitting} errors={pollErrors} onOptionsChange={options => { setPollOptions(options); setPollErrors({}); }} onMultipleChange={setMultiple} />}
+      <label className="field">{kind === "poll" ? "Deskripsi" : kind === "article" ? "Artikel" : "Cerita"}{kind === "poll" && <span className="optional">opsional</span>}<textarea aria-label={kind === "poll" ? "Deskripsi" : kind === "article" ? "Artikel" : "Cerita"} value={body} onChange={e => setBody(e.target.value)} aria-describedby={kind === "article" ? "markdown-hint" : pollErrors.body ? "poll-body-error" : undefined} aria-invalid={Boolean(pollErrors.body)} placeholder={kind === "poll" ? "Tambahkan konteks singkat…" : kind === "article" ? "## Awal cerita\n\nCeritakan kebaikannya…" : "Ceritakan kebaikannya…"} rows={kind === "article" ? 7 : 3} required={kind !== "poll"} minLength={kind === "poll" ? undefined : 3} maxLength={kind === "article" ? 10000 : 2000} />{kind === "article" && <span className="field-hint" id="markdown-hint">Gunakan Markdown: ## judul, **tebal**, - daftar, dan [tautan](https://…).</span>}{pollErrors.body && <span id="poll-body-error" role="alert" className="field-error">{pollErrors.body}</span>}<span className="character-count" aria-hidden="true">{body.length}/{kind === "article" ? "10.000" : "2.000"}</span></label>
+      {kind !== "poll" && <label className="field">Untuk siapa?<span className="optional">opsional</span><input aria-label="Untuk siapa?" aria-describedby="subject-hint" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Nama orang yang ingin diapresiasi" maxLength={80} /><span className="field-hint" id="subject-hint">Pastikan ia nyaman disebut.</span></label>}
       {error && <p className="field-error" role="alert">{error}</p>}
       <div className="composer-footer"><span><Shield size={14} />Direview sebelum terbit</span><Button type="submit" disabled={uploading || submitting}>{submitting ? "Mengirim…" : "Kirim"}</Button></div>
     </form>}

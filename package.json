@@ -11,7 +11,9 @@
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "setup:local": "tsx scripts/setup-local.ts",
-    "build:preview": "node scripts/build-ui-preview.mjs"
+    "build:preview": "node scripts/build-ui-preview.mjs",
+    "start:preview": "node scripts/serve-ui-preview.mjs",
+    "test:preview": "playwright test --config playwright.preview.config.ts"
   },
   "dependencies": {
     "@mux/mux-player-react": "^3.14.0",

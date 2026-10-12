@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Flag, Heart, MoreHorizontal, Pencil, Play, Shield, Video } from "lucide-react";
-import type { Post, PublicAsset } from "@/lib/types";
+import type { PublicAsset } from "@/lib/types";
+import { canEditPost, type FeedPost as Post } from "@/lib/preview-types";
+import { PollCard } from "./poll-card";
 import { api, cn, relativeDate } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
@@ -50,12 +52,13 @@ export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage, ar
     {post.kind === "video" && asset && <VideoMedia asset={asset} />}
     {post.kind === "article" && <Link className="article-preview" href={`/articles?id=${encodeURIComponent(post.id)}&from=${articleFrom ?? scope}`}><span className="content-type"><BookOpen size={16} />Artikel</span><h2>{post.title}</h2><p>{post.body.slice(0, 150)}{post.body.length > 150 ? "…" : ""}</p><span className="read-link">Baca artikel <ArrowUpRight size={18} /></span></Link>}
     {post.kind === "link" && <a className="link-preview" href={post.url} target="_blank" rel="noopener noreferrer"><span className="link-mark"><ArrowUpRight size={28} /></span><div><span className="content-type">{new URL(post.url).hostname.replace(/^www\./, "")}</span><h2>{post.title || "Kontribusi untuk sekitar"}</h2><span className="read-link">Buka website <ArrowUpRight size={16} /></span></div></a>}
+    {post.kind === "poll" && <PollCard post={post} scope={scope} onMessage={onMessage} />}
     <div className="post-content">
       {post.status === "approved" && <div className="post-actions"><button className={cn("appreciate-button", likes.active && "is-appreciated")} onClick={appreciate} disabled={likeBusy} aria-pressed={likes.active} aria-label={likes.active ? "Batalkan apresiasi" : "Apresiasi kiriman"}><Heart size={24} fill={likes.active ? "currentColor" : "none"} /><span>{likes.count > 0 ? `${likes.count} apresiasi` : "Apresiasi"}</span></button>{Boolean(post.reports) && <span className="report-count"><Flag size={14} />{post.reports} laporan</span>}</div>}
       {post.subject && <p className="post-subject">Untuk <strong>{post.subject}</strong></p>}
-      {post.kind !== "article" && <><p className={cn("post-caption", !expanded && "clamped")}>{post.body}</p>{post.body.length > 170 && <button className="text-button" onClick={() => setExpanded(!expanded)}>{expanded ? "Ringkas" : "Selengkapnya"}</button>}</>}
+      {post.kind !== "article" && post.kind !== "poll" && <><p className={cn("post-caption", !expanded && "clamped")}>{post.body}</p>{post.body.length > 170 && <button className="text-button" onClick={() => setExpanded(!expanded)}>{expanded ? "Ringkas" : "Selengkapnya"}</button>}</>}
       {scope !== "feed" && post.reason && <div className="review-reason"><span>Catatan admin</span><p>{post.reason}</p></div>}
-      {scope === "mine" && post.status !== "pending" && <Button variant="secondary" className="small-button" onClick={() => onEdit?.(post)}><Pencil size={16} />{post.status === "rejected" ? "Perbaiki kiriman" : "Edit kiriman"}</Button>}
+      {scope === "mine" && canEditPost(post) && <Button variant="secondary" className="small-button" onClick={() => onEdit?.(post)}><Pencil size={16} />{post.status === "rejected" ? "Perbaiki kiriman" : "Edit kiriman"}</Button>}
       {scope === "admin" && <div className="moderation-actions">{post.status === "pending" ? <><Button onClick={() => onReview?.(post, "approve")} disabled={post.assets.some(a => a.status !== "ready")}>Terbitkan</Button><Button variant="secondary" onClick={() => onReview?.(post, "reject")}>Kembalikan</Button></> : post.status === "approved" ? <Button variant="danger" onClick={() => onReview?.(post, "hide")}>Sembunyikan</Button> : null}</div>}
     </div>
     <Modal open={reportOpen} onOpenChange={v => { if (!reportBusy) setReportOpen(v); }} title="Laporkan kiriman" description="Laporan akan direview admin."><fieldset className="report-options"><legend className="sr-only">Alasan laporan</legend>{["Tidak sesuai", "Privasi orang lain", "Informasi tidak benar"].map(reason => <label key={reason}><input type="radio" name={`report-${post.id}`} value={reason} checked={reportReason === reason} onChange={() => setReportReason(reason)} />{reason}</label>)}</fieldset>{reportError && <p className="field-error" role="alert">{reportError}</p>}<Button className="full-width" onClick={report} disabled={reportBusy}>{reportBusy ? "Mengirim…" : "Kirim laporan"}</Button></Modal>

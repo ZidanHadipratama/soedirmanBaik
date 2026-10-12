@@ -38,3 +38,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Check desktop and mobile flows
         run: npm run test:e2e
+      - name: Build UI preview
+        run: npm run build:preview
+      - name: Check preview polling on desktop and mobile
+        run: npm run test:preview

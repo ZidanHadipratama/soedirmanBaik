@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Grid3X3, Heart, Home, Inbox, LockKeyhole, LogOut, Plus, Search, Shield, X } from "lucide-react";
-import { POST_KINDS, kindLabels, type Post, type PostKind, type PostStatus } from "@/lib/types";
+import type { PostStatus } from "@/lib/types";
+import { feedKinds as POST_KINDS, feedKindLabels as kindLabels, PREVIEW_POST_CHANGED, type FeedPost as Post, type FeedKind as PostKind } from "@/lib/preview-types";
 import { api, cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/dialog";
@@ -30,6 +31,12 @@ export function CommunityApp({ initialView = "feed" }: { initialView?: View }) {
   const [reviewBusy, setReviewBusy] = useState(false); const [reviewError, setReviewError] = useState(""); const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announce = useCallback((message: string) => { setToast(message); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(""), 4500); }, []);
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_UI_PREVIEW !== "true") return;
+    function update(event: Event) { const post = (event as CustomEvent<Post>).detail; setPosts(current => current.map(item => item.id === post.id ? post : item)); }
+    window.addEventListener(PREVIEW_POST_CHANGED, update);
+    return () => window.removeEventListener(PREVIEW_POST_CHANGED, update);
+  }, []);
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
   useEffect(() => { const controller = new AbortController(); api<{ admin: boolean; backend: string }>("/api/session", { signal: controller.signal }).then(setSession).catch(e => { if (e.name !== "AbortError") setSession({ admin: false, backend: "local" }); }); return () => controller.abort(); }, []);
   useEffect(() => { const timeout = setTimeout(() => setQuery(search), 300); return () => clearTimeout(timeout); }, [search]);

@@ -62,3 +62,13 @@ Vercel settings for this preview: Framework **Other**, build command `npm run bu
 The target is the existing **soedirman-baik-ui** project at https://soedirman-baik-ui.vercel.app. This is the browser-only demo; data resets on reload. It is separate from the Supabase/Mux production backend described above. `vercel.json` preserves the demo build settings and enables native Git deployments. Pushes to the Vercel production branch (`main`) deploy to production; other branches and pull requests receive Vercel preview deployments when configured in the project.
 
 If automatic builds stop, check **Vercel → soedirman-baik-ui → Settings → Git** and confirm the connected repository is `ZidanHadipratama/soedirmanBaik` and the production branch is `main`. Check workflow results on the [Actions page](https://github.com/ZidanHadipratama/soedirmanBaik/actions).
+
+## Polling demo
+
+Polling is available in the browser-only preview: **Kirim → Polling**. Enter a question and 2–12 unique answers; optionally enable **Izinkan beberapa jawaban**. The submission appears in **Kiriman saya** and becomes votable after approval through **Coba admin**. Find approved polls in Beranda or through the Polling filter in Jelajahi.
+
+Tap an answer to vote, replace your single answer, or toggle multiple answers. Results are visible immediately. Percentages use participants as the denominator, so multiple-answer results may total more than 100%. Creators can use **Tutup polling** in Kiriman saya; closing preserves results and prevents further changes. Polls with votes, closed polls, and pending submissions cannot be edited.
+
+Run `npm run build:preview` followed by `npm run start:preview`, then open http://localhost:3138. Run `npm run test:preview` for the desktop/mobile preview checks.
+
+Polls, votes, and example counts are demo data: changes reset on page reload and are not shared between visitors. Production mode retains its existing four post formats; persistent shared voting is a future backend feature.
