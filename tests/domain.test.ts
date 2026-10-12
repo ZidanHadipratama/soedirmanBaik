@@ -85,10 +85,12 @@ test("appreciation is per guest, reversible, and disallowed for pending content"
   assert.deepEqual(await localStore.toggleAppreciation(p.id, other), { count: 1, active: true });
   assert.deepEqual(await localStore.toggleAppreciation(p.id, other), { count: 0, active: false });
 });
-test("rate limits count concurrent attempts and expire", async () => {
+test("rate limits count concurrent attempts and expire", async t => {
+  let now = Date.now();
+  t.mock.method(Date, "now", () => now);
   const key = randomUUID();
   const results = await Promise.all([localStore.consumeLimit(key, 2, 10), localStore.consumeLimit(key, 2, 10), localStore.consumeLimit(key, 2, 10)]);
   assert.deepEqual(results, [true, true, false]);
-  await new Promise(resolve => setTimeout(resolve, 20));
+  now += 20;
   assert.equal(await localStore.consumeLimit(key, 2, 10), true);
 });
