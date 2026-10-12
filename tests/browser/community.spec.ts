@@ -8,7 +8,7 @@ async function admin(request: APIRequestContext) { expect((await send(request, "
 test("anonymous article submission and mobile layout", async ({ page }) => {
   const unique = `Belajar bersama ${Date.now()}`;
   await page.goto("/");
-  await page.getByRole("button", { name: "Ada kebaikan hari ini?" }).click();
+  await page.getByRole("button", { name: "Kirim", exact: true }).filter({ visible: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Artikel", exact: true }).click();
   await dialog.getByLabel("Judul", { exact: true }).fill(unique);
@@ -91,7 +91,7 @@ test("unsafe links, file spoofing, foreign origin, and unowned attachments are r
 
 test("dialog keyboard focus, cancellation, and reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" }); await page.goto("/");
-  await page.getByRole("button", { name: "Ada kebaikan hari ini?" }).click();
+  await page.getByRole("button", { name: "Kirim", exact: true }).filter({ visible: true }).click();
   const dialog = page.getByRole("dialog"); await expect(dialog).toBeVisible();
   expect(await page.evaluate(() => document.querySelector('[role="dialog"]')?.contains(document.activeElement))).toBeTruthy();
   expect(await dialog.evaluate(el => getComputedStyle(el).animationName)).toBe("none");
@@ -114,4 +114,59 @@ test("admin reviews a submission through the interface", async ({ page, browser 
     await expect(page.locator("article").filter({ hasText: title })).toBeVisible();
     const feed = await owner.request.get("/api/posts"); expect((await feed.json()).posts.some((post: { title: string }) => post.title === title)).toBeTruthy();
   } finally { await owner.close(); }
+});
+
+test("gallery opens every format and articles navigate to a Markdown page", async ({ page }) => {
+  const timestamp = new Date().toISOString();
+  const base = { status: "approved", title: "", subject: "", body: "Cerita kebaikan.", url: "", reason: "", example: false, revision: 1, appreciations: 0, appreciated: false, assets: [], createdAt: timestamp, publishedAt: timestamp };
+  const posts = [
+    { ...base, id: "gallery-photo", kind: "photo", assets: [{ id: "photo", provider: "local", mime: "image/jpeg", status: "ready", playbackId: null, url: "/assets/community.jpg" }] },
+    { ...base, id: "gallery-article", kind: "article", title: "Belajar bersama", body: "## Langkah kecil\n\n**Berbagi** ilmu.\n\n- Buku\n- Pensil" },
+    { ...base, id: "gallery-link", kind: "link", title: "Website komunitas", url: "https://example.com/" },
+    { ...base, id: "gallery-video", kind: "video", assets: [{ id: "video", provider: "local", mime: "video/mp4", status: "processing", playbackId: null, url: "" }] },
+  ];
+  await page.route("**/api/session", route => route.fulfill({ json: { admin: false, backend: "local" } }));
+  await page.route("**/api/posts?*", route => {
+    const url = new URL(route.request().url());
+    const kind = url.searchParams.get("kind"); const query = url.searchParams.get("q") ?? "";
+    return route.fulfill({ json: { posts: posts.filter(post => (!kind || post.kind === kind) && `${post.title} ${post.body}`.includes(query)), hasMore: false } });
+  });
+  await page.route("**/api/posts/gallery-article", route => route.fulfill({ json: posts[1] }));
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Ada kebaikan hari ini?" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Kirim", exact: true }).filter({ visible: true })).toHaveCount(1);
+  for (const selector of [".post-image", ".article-preview", ".link-preview", ".video-placeholder"]) {
+    const frame = await page.locator(selector).evaluate(el => { const rect = el.getBoundingClientRect(); return rect.width / rect.height; });
+    expect(frame).toBeCloseTo(4 / 5, 2);
+  }
+  await page.getByRole("link", { name: "Jelajahi", exact: true }).filter({ visible: true }).click();
+  await expect(page.locator(".gallery-tile")).toHaveCount(4);
+  for (const kind of ["photo", "link", "video"]) {
+    await page.locator(`.gallery-${kind}`).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("dialog").locator(".post-card")).toBeVisible();
+    await page.keyboard.press("Escape");
+  }
+  await page.getByLabel("Cari kebaikan").fill("Belajar");
+  await expect(page.locator(".gallery-tile")).toHaveCount(1);
+  await page.locator(".gallery-article").click();
+  await page.getByRole("link", { name: /Baca artikel/ }).click();
+  await expect(page).toHaveURL(/\/articles\?id=gallery-article/);
+  await expect(page.getByRole("heading", { name: "Langkah kecil" })).toBeVisible();
+  await expect(page.locator(".markdown-body strong")).toHaveText("Berbagi");
+  await expect(page.locator(".markdown-body li")).toHaveCount(2);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Belajar bersama", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Kembali ke galeri" }).click();
+  await expect(page).toHaveURL(/view=gallery/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test("article page handles missing and inaccessible articles", async ({ page }) => {
+  await page.goto("/articles");
+  await expect(page.getByRole("alert")).toHaveText("Artikel tidak ditemukan.");
+  await page.route("**/api/posts/unavailable", route => route.fulfill({ status: 404, json: { error: "Kiriman tidak ditemukan." } }));
+  await page.goto("/articles?id=unavailable");
+  await expect(page.getByRole("heading", { name: "Artikel belum tersedia." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Kiriman tidak ditemukan.");
 });

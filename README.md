@@ -43,6 +43,8 @@ The browser tests use a separate temporary database and test-only secrets. They 
 
 ## Design
 
+The feed uses 4:5 photo, video, article, and website previews. **Jelajahi** displays approved posts in a searchable three-column gallery; select a tile to see the full post. Submit using **Kirim** in the bottom navigation (mobile) or bottom of the sidebar (desktop). Articles open at `/articles?id=<post-id>` and support Markdown headings, emphasis, lists, quotes, code, links, images, and GFM tables. Raw HTML is ignored; Markdown images load lazily without a referrer. Pending articles retain the API’s existing owner/admin access checks.
+
 Tokens: `design-system/MASTER.md` and `src/app/globals.css`. TypeUI fundamentals are installed project-locally under `.agents/skills/typeui-fundamentals`. The Superdesign brief is in `design-system/superdesign-brief.md`. All UI copy is Indonesian. Dialogs trap focus and respect reduced motion; tap targets are 48px.
 
 Crest: user-supplied P3MD image. Example volunteer photo: [Unsplash image source](https://images.unsplash.com/photo-1559027615-cd4628902d4a). Example posts are fictional demonstrations, not evidence of P3MD student activity.
@@ -52,3 +54,17 @@ Crest: user-supplied P3MD image. Example volunteer photo: [Unsplash image source
 Run `npm run build:preview` to export the same UI with browser-only example data into `.ui-preview/out`. The export includes no API routes, backend modules, local database, or environment files. Filter, search, compose, upload previews, reactions, and moderation are interactive; changes reset on page reload. All content is marked as an example. Use **Coba admin** on `/admin` to view the demo review queue; it is not production authentication.
 
 Vercel settings for this preview: Framework **Other**, build command `npm run build:preview`, output directory `.ui-preview/out`, install command `npm ci`. Do not add backend credentials to the design preview project.
+
+## GitHub Actions and Vercel deployment
+
+`.github/workflows/ci-deploy.yml` runs lint, type checking, unit tests, the full Next.js build, and desktop/mobile browser tests on pull requests and pushes to `main`. Only successful checks on `main` can deploy. The deployment builds the frontend demo with `vercel build --prod`, then uploads that artifact with `vercel deploy --prebuilt --prod`.
+
+The target is the existing **soedirman-baik-ui** project at https://soedirman-baik-ui.vercel.app. This is the browser-only demo; data resets on reload. It is separate from the Supabase/Mux production backend described above. `vercel.json` preserves the demo build settings and disables native Git deployments so Actions controls releases without duplicate builds.
+
+One-time setup:
+
+1. In [repository environment settings](https://github.com/ZidanHadipratama/soedirmanBaik/settings/environments), create or open `production` and restrict deployment branches to `main`.
+2. Create a [Vercel token](https://vercel.com/account/settings/tokens) with access to `zidanhadipratamas-projects` and add it directly as the environment secret **VERCEL_TOKEN**. Do not commit or paste this token into chat. Project/team IDs and the exact CLI version are already in the workflow.
+3. Rerun the failed deployment job, or manually run **Check and deploy** from the [Actions page](https://github.com/ZidanHadipratama/soedirmanBaik/actions). Future pushes to `main` deploy automatically after checks pass.
+
+Pull requests receive checks without deployment credentials. The workflow does not upload environment files or authenticated browser traces.

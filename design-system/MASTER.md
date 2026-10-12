@@ -3,16 +3,17 @@
 Instagram-inspired, media-first community feed. User's crest and requested restraint override generic tool presets.
 
 ## Tokens
-- Navy #06233B; navy-light #173C56.
-- Gold #D6B466; gold-light #F8F0DA.
-- Cream #FFFDF5; white #FFFFFF; muted ink #5A6B79 (darkened to maintain AA contrast on gold-light).
-- Red #B83A3A; red-light #FCE8E5; border #E5E8EA.
+- Ink #293F54; soft ink #3C566E.
+- Blue #507899; blue-light #EDF3F8; blue-dark #406481.
+- Cool paper #F5F7FA; white #FFFFFF; muted ink #596B7C.
+- Red #A95056; red-light #F8EDEF; border #E0E7EE.
 - Plus Jakarta Sans throughout: 16px body, 13px metadata, 24px page heading.
 - Spacing 4/8/12/16/24/32/48px. Cards 16px, dialogs 24px, controls 12px, badges pill.
-- Gold primary action with navy text. Focus 3px navy outline + 3px offset.
+- Muted blue primary action with white text; red accents for the brand period, appreciation, and article quotes. Focus 3px navy outline + 3px offset.
 
 ## Layout
-Desktop: 232px left rail, 600px feed, quiet 220px utility aside. Mobile: full-width media, restrained header, three-item bottom nav.
+Desktop: 232px left rail, 600px feed, quiet 220px utility aside. Mobile: full-width media, restrained header, four-item bottom nav (Beranda, Jelajahi, Kirim, Kiriman saya). Submission lives at the bottom of the rail on desktop and in bottom navigation on mobile; no top composer prompt.
+Post previews use a consistent Instagram-style 4:5 frame; gallery tiles use a square three-column grid. Articles open on /articles?id=<post-id>, with safe Markdown and readable long-form spacing.
 Post content dominates. No marketing hero, background pattern, confetti, decorative statistics, or scroll-reveal animations.
 
 ## Motion

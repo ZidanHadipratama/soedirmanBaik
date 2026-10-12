@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Flag, Heart, MoreHorizontal, Pencil, Play, Shield, Video } from "lucide-react";
 import type { Post, PublicAsset } from "@/lib/types";
@@ -17,11 +18,11 @@ function VideoMedia({ asset }: { asset: PublicAsset }) {
   if (asset.provider !== "mux") return <video className="post-video" controls playsInline preload="metadata" src={asset.url} aria-label="Video kegiatan" />;
   async function load() { setLoading(true); setError(""); try { setPlayback(await api(`/api/video/${asset.id}`)); } catch (e) { setError((e as Error).message); } finally { setLoading(false); } }
   if (!playback) return <div className="video-placeholder"><button className="video-play" onClick={load} disabled={loading} aria-label="Putar video"><Play fill="currentColor" size={28} /></button><span>{loading ? "Memuat video…" : "Putar video"}</span>{error && <p role="alert">{error}</p>}</div>;
-  return <MuxPlayer playbackId={playback.playbackId} tokens={playback.tokens} streamType="on-demand" accentColor="#D6B466" className="post-video" />;
+  return <MuxPlayer playbackId={playback.playbackId} tokens={playback.tokens} streamType="on-demand" accentColor="#507899" className="post-video" />;
 }
-export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage }: { post: Post; scope?: "feed" | "mine" | "admin"; onEdit?: (post: Post) => void; onReview?: (post: Post, action: "approve" | "reject" | "hide") => void; onMessage: (message: string) => void }) {
+export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage, articleFrom }: { post: Post; articleFrom?: "gallery"; scope?: "feed" | "mine" | "admin"; onEdit?: (post: Post) => void; onReview?: (post: Post, action: "approve" | "reject" | "hide") => void; onMessage: (message: string) => void }) {
   const [index, setIndex] = useState(0); const [expanded, setExpanded] = useState(false);
-  const [articleOpen, setArticleOpen] = useState(false); const [reportOpen, setReportOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("Tidak sesuai"); const [reportError, setReportError] = useState("");
   const [reportBusy, setReportBusy] = useState(false); const [likeBusy, setLikeBusy] = useState(false);
   const [likes, setLikes] = useState({ count: post.appreciations, active: post.appreciated });
@@ -43,11 +44,11 @@ export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage }: 
       {scope === "feed" && <button className="icon-button more-button" aria-label="Laporkan kiriman" onClick={() => setReportOpen(true)}><MoreHorizontal size={22} /></button>}
       {scope !== "feed" && <StatusBadge status={post.status} />}
     </header>
-    {post.kind === "photo" && asset && <div className="post-image"><Image src={asset.url} alt={post.body.slice(0, 160)} width={1200} height={900} sizes="(max-width: 767px) 100vw, 600px" unoptimized />
+    {post.kind === "photo" && asset && <div className="post-image"><Image src={asset.url} alt={post.body.slice(0, 160)} width={1080} height={1350} sizes="(max-width: 767px) 100vw, 600px" unoptimized />
       {post.assets.length > 1 && <><span className="photo-count" aria-live="polite">{index + 1}/{post.assets.length}</span><div className="carousel-controls"><button className="carousel-button" disabled={index === 0} onClick={() => setIndex(index - 1)} aria-label="Foto sebelumnya"><ChevronLeft size={20} /></button><button className="carousel-button" disabled={index === post.assets.length - 1} onClick={() => setIndex(index + 1)} aria-label="Foto berikutnya"><ChevronRight size={20} /></button></div></>}
     </div>}
     {post.kind === "video" && asset && <VideoMedia asset={asset} />}
-    {post.kind === "article" && <button className="article-preview" onClick={() => setArticleOpen(true)}><span className="content-type"><BookOpen size={16} />Artikel</span><h2>{post.title}</h2><p>{post.body.slice(0, 150)}{post.body.length > 150 ? "…" : ""}</p><span className="read-link">Baca artikel <ArrowUpRight size={18} /></span></button>}
+    {post.kind === "article" && <Link className="article-preview" href={`/articles?id=${encodeURIComponent(post.id)}&from=${articleFrom ?? scope}`}><span className="content-type"><BookOpen size={16} />Artikel</span><h2>{post.title}</h2><p>{post.body.slice(0, 150)}{post.body.length > 150 ? "…" : ""}</p><span className="read-link">Baca artikel <ArrowUpRight size={18} /></span></Link>}
     {post.kind === "link" && <a className="link-preview" href={post.url} target="_blank" rel="noopener noreferrer"><span className="link-mark"><ArrowUpRight size={28} /></span><div><span className="content-type">{new URL(post.url).hostname.replace(/^www\./, "")}</span><h2>{post.title || "Kontribusi untuk sekitar"}</h2><span className="read-link">Buka website <ArrowUpRight size={16} /></span></div></a>}
     <div className="post-content">
       {post.status === "approved" && <div className="post-actions"><button className={cn("appreciate-button", likes.active && "is-appreciated")} onClick={appreciate} disabled={likeBusy} aria-pressed={likes.active} aria-label={likes.active ? "Batalkan apresiasi" : "Apresiasi kiriman"}><Heart size={24} fill={likes.active ? "currentColor" : "none"} /><span>{likes.count > 0 ? `${likes.count} apresiasi` : "Apresiasi"}</span></button>{Boolean(post.reports) && <span className="report-count"><Flag size={14} />{post.reports} laporan</span>}</div>}
@@ -57,7 +58,6 @@ export function PostCard({ post, scope = "feed", onEdit, onReview, onMessage }: 
       {scope === "mine" && post.status !== "pending" && <Button variant="secondary" className="small-button" onClick={() => onEdit?.(post)}><Pencil size={16} />{post.status === "rejected" ? "Perbaiki kiriman" : "Edit kiriman"}</Button>}
       {scope === "admin" && <div className="moderation-actions">{post.status === "pending" ? <><Button onClick={() => onReview?.(post, "approve")} disabled={post.assets.some(a => a.status !== "ready")}>Terbitkan</Button><Button variant="secondary" onClick={() => onReview?.(post, "reject")}>Kembalikan</Button></> : post.status === "approved" ? <Button variant="danger" onClick={() => onReview?.(post, "hide")}>Sembunyikan</Button> : null}</div>}
     </div>
-    <Modal open={articleOpen} onOpenChange={setArticleOpen} title={post.title || "Artikel"} className="article-dialog"><div className="article-body">{post.body.split(/\n\s*\n/).map((paragraph, i) => <p key={i}>{paragraph}</p>)}</div></Modal>
     <Modal open={reportOpen} onOpenChange={v => { if (!reportBusy) setReportOpen(v); }} title="Laporkan kiriman" description="Laporan akan direview admin."><fieldset className="report-options"><legend className="sr-only">Alasan laporan</legend>{["Tidak sesuai", "Privasi orang lain", "Informasi tidak benar"].map(reason => <label key={reason}><input type="radio" name={`report-${post.id}`} value={reason} checked={reportReason === reason} onChange={() => setReportReason(reason)} />{reason}</label>)}</fieldset>{reportError && <p className="field-error" role="alert">{reportError}</p>}<Button className="full-width" onClick={report} disabled={reportBusy}>{reportBusy ? "Mengirim…" : "Kirim laporan"}</Button></Modal>
   </article>;
 }
